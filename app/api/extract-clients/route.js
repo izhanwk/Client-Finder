@@ -39,28 +39,27 @@ export async function POST(req) {
 
   const browser = await puppeteer.launch({
     headless: "new",
-    protocolTimeout: 60000,
   });
   const page = await browser.newPage();
 
   // ✅ Load cookies from file
 
   const storedCookies = fs.readFileSync("cookies.json");
+  console.log("reading complete");
   const cookies = JSON.parse(storedCookies);
 
   // Set cookies for the page session
   await page.setCookie(...cookies);
+  console.log("Setting up cookies");
 
   await page.goto(
-    "https://www.linkedin.com/jobs/search?trk=guest_homepage-basic_guest_nav_menu_jobs&position=1&pageNum=0",
-    {
-      timeout: 0,
-      waitUntil: "networkidle0",
-    }
+    "https://www.linkedin.com/jobs/search?trk=guest_homepage-basic_guest_nav_menu_jobs&position=1&pageNum=0"
   );
 
   console.log("✅ Logged in using saved cookies");
   await page.setViewport({ width: 1080, height: 4000 });
+
+  // await page.waitForNavigation();
 
   await page.screenshot({ path: "github-profile.png" });
   console.log("SS done");

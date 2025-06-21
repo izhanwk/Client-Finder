@@ -49,20 +49,24 @@ function Navbar() {
         setloading(false);
         return;
       }
+
       if (session?.user?.email && !checked) {
         setChecked(true);
         setemail(session.user.email);
-
+        // setloadingMessage("Loading");
+        // setloading(true);
         try {
           // setloadingMessage("Please wait a bit");
-          setloadingMessage("Loading");
-          setloading(true);
+          // setloadingMessage("Loading");
+          // setloading(true);
           const response = await axios.post("/api/check-customer", {
             email: session.user.email,
           });
-
-          setloading(false);
-          router.push("/dashboard");
+          setloadingMessage("Redirecting to Dashboard");
+          setloading(true);
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 100); // 100ms is enough for the browser to show the loader
         } catch (error) {
           if (error.response) {
             if (
