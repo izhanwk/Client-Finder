@@ -27,6 +27,7 @@ function Page() {
           axios.get("api/professions"),
         ]);
         const countriesList = countriesRes.data.data;
+        console.log(countriesList);
         setCountries(countriesList.map((country) => country.name));
         setprofessions(professionsRes.data);
       } catch (error) {
@@ -91,7 +92,7 @@ function Page() {
   const onSubmit = async (data) => {
     console.log("Submitted Data:", data);
     const response = await axios.post("/api/extract-clients", data);
-    console.log(response);
+    console.log(response.data);
   };
 
   return (

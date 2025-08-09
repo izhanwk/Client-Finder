@@ -18,6 +18,7 @@ export const authOptions = {
       },
     }),
   ],
+  debug: true,
   pages: {
     error: "/",
   },
