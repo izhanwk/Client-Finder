@@ -4,7 +4,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const require = createRequire(import.meta.url);
-const { Scraper } = require("../../../lib/scraper.cjs");
+const { Scraper } = require("../../../lib/Scraper.cjs");
+
+export const runtime = "nodejs";
 
 export async function POST(req) {
   // const browser = await puppeteer.launch({
@@ -51,4 +53,64 @@ export async function POST(req) {
       { status: 500 }
     );
   }
+}
+
+// SSE stream for real-time progress updates
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const city = searchParams.get("city") || "";
+  const state = searchParams.get("state") || "";
+  const country = searchParams.get("country") || "";
+  const profession = searchParams.get("profession") || "";
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    start(controller) {
+      const send = (payload) => {
+        const text =
+          typeof payload === "string" ? payload : JSON.stringify(payload);
+        controller.enqueue(encoder.encode(`data: ${text}\n\n`));
+      };
+
+      // Heartbeat to keep connection alive through proxies
+      const heartbeat = setInterval(() => {
+        controller.enqueue(encoder.encode(":keep-alive\n\n"));
+      }, 15000);
+
+      (async () => {
+        try {
+          send({ status: "started" });
+
+          const companies = await Scraper({
+            city,
+            state,
+            country,
+            profession,
+            onProgress: (update) => {
+              try {
+                send(update);
+              } catch (_) {}
+            },
+          });
+
+          send({ status: "done", total: companies?.length || 0 });
+        } catch (err) {
+          send({ error: err?.message || "Unknown error" });
+        } finally {
+          clearInterval(heartbeat);
+          controller.close();
+        }
+      })();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }

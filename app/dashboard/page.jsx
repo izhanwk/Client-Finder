@@ -91,8 +91,29 @@ function Page() {
 
   const onSubmit = async (data) => {
     console.log("Submitted Data:", data);
-    const response = await axios.post("/api/extract-clients", data);
-    console.log(response.data);
+    setloading(true);
+
+    const qs = new URLSearchParams(data).toString();
+    const es = new EventSource(`/api/extract-clients?${qs}`);
+
+    es.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        console.log("SSE:", payload);
+        if (payload.status === "done" || payload.status === "finished") {
+          setloading(false);
+          es.close();
+        }
+      } catch (e) {
+        console.log("SSE:", event.data);
+      }
+    };
+
+    es.onerror = (err) => {
+      console.error("SSE error:", err);
+      setloading(false);
+      es.close();
+    };
   };
 
   return (
