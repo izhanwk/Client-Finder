@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 function Page() {
   const [countries, setCountries] = useState([]);
@@ -9,6 +10,8 @@ function Page() {
   const [cities, setCities] = useState([]);
   const [professions, setprofessions] = useState([]);
   const [loading, setloading] = useState(false);
+  const [loadingMessage, setloadingMessage] = useState("Loading");
+  const router = useRouter();
 
   const { register, watch, handleSubmit, setValue } = useForm();
   const formValues = watch();
@@ -27,7 +30,6 @@ function Page() {
           axios.get("api/professions"),
         ]);
         const countriesList = countriesRes.data.data;
-        console.log(countriesList);
         setCountries(countriesList.map((country) => country.name));
         setprofessions(professionsRes.data);
       } catch (error) {
@@ -89,10 +91,42 @@ function Page() {
     }
   }, [formValues.state]);
 
-  const onSubmit = async (data) => {
-    console.log("Submitted Data:", data);
-    const response = await axios.post("/api/extract-clients", data);
-    console.log(response.data);
+  const onSubmit = (data) => {
+    setloading(true);
+    const qs = new URLSearchParams(data).toString();
+    const es = new EventSource(`/api/extract-clients?${qs}`);
+    let location = "";
+
+    es.onmessage = (event) => {
+      const update = JSON.parse(event.data); // Convert from string to object
+      console.log(update);
+      if (update.status === "progress") {
+        setloadingMessage(update.update);
+      } else if (update.status === "location") {
+        console.log(update.update);
+        location = update.update;
+      } else if (update.status === "done") {
+        try {
+          sessionStorage.setItem("companies", update.data);
+          setloadingMessage("Redirecting to results");
+          es.close();
+          // console.log(location);
+          router.push(`/results?location=${location}`);
+        } catch (err) {
+          console.log("This is error : ", err);
+        }
+      } else if (update.status === "error") {
+        setloading(false);
+        setloadingMessage("Loading");
+        es.close();
+      }
+    };
+
+    es.onerror = (err) => {
+      setloading(false);
+      console.error("SSE error:", err);
+      es.close();
+    };
   };
 
   return (
@@ -119,7 +153,7 @@ function Page() {
                 fill="currentFill"
               />
             </svg>
-            <p className="text-white px-3">Loading</p>
+            <p className="text-white px-3">{loadingMessage}</p>
           </div>
         </div>
       )}

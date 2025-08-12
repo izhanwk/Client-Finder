@@ -28,17 +28,6 @@ function page() {
     formState: { errors },
   } = useForm();
 
-  // const { setloading } = useGlobalState();
-
-  useEffect(() => {
-    setloading(false);
-    console.log("ho gyaa");
-  }, []);
-
-  useEffect(() => {
-    console.log(loading);
-  }, [loading]);
-
   const onSubmit = async (data) => {
     const newdata = { ...data, email: session.user.email };
     try {
