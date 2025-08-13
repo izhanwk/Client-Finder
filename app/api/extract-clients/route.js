@@ -1,6 +1,8 @@
 import { createRequire } from "module";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
+import connectDB from "@/lib/db";
+import Customers from "@/models/Customers";
 
 const require = createRequire(import.meta.url);
 const { Scraper } = require("../../../lib/scraper.cjs");
@@ -11,13 +13,7 @@ export async function GET(req) {
   const state = searchParams.get("state");
   const country = searchParams.get("country");
   const profession = searchParams.get("profession");
-
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return new Response(JSON.stringify({ message: "User not found" }), {
-      status: 404,
-    });
-  }
+  console.log("Data from POSTMAN", city, state, country, profession);
 
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
@@ -27,29 +23,55 @@ export async function GET(req) {
     writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
   };
 
-  // Start streaming immediately
-  send({ status: "started", message: "Your work has been started" });
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    // console.log("No session");
+    return new Response(JSON.stringify({ message: "User not found" }), {
+      status: 404,
+    });
+  }
 
-  // Run scraper asynchronously so the stream stays alive
-  (async () => {
-    try {
-      const companies = await Scraper({
-        city,
-        state,
-        country,
-        profession,
-        onProgress: (update) => send(update), // optional: progress
-      });
+  connectDB();
+  const email = session.user.email;
+  const registered = await Customers.findOne({ email: email });
 
-      const jsonData = JSON.stringify(companies);
-      console.log("JSON companies are here : ", jsonData);
-      send({ status: "done", count: companies.length, data: jsonData });
-    } catch (err) {
-      send({ status: "error", message: err.message });
-    } finally {
-      writer.close();
-    }
-  })();
+  if (
+    registered &&
+    registered.email !== "" &&
+    registered.city !== "" &&
+    registered.country !== "" &&
+    registered.profession !== ""
+  ) {
+    send({ status: "started", message: "Your work has been started" });
+
+    (async () => {
+      console.log("Started");
+      try {
+        const companies = await Scraper({
+          city,
+          state,
+          country,
+          profession,
+          onProgress: (update) => send(update),
+        });
+
+        const jsonData = JSON.stringify(companies);
+        // console.log("JSON companies are here : ", jsonData);
+        send({ status: "done", count: companies.length, data: jsonData });
+      } catch (err) {
+        send({ status: "error", message: err.message });
+      } finally {
+        writer.close();
+      }
+    })();
+  } else {
+    send({
+      status: "error",
+      update: "Incomplete Profile",
+      errorCode: 404,
+    });
+    await writer.close();
+  }
 
   return new Response(stream.readable, {
     headers: {

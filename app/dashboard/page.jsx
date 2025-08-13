@@ -100,6 +100,17 @@ function Page() {
     es.onmessage = (event) => {
       const update = JSON.parse(event.data); // Convert from string to object
       console.log(update);
+      if (
+        update.status === "error" &&
+        update.update === "Incomplete Profile" &&
+        update.errorCode === 404
+      ) {
+        setloading(true);
+        setloadingMessage(
+          "Your profile is incomplete, redirecting to complete your Profile"
+        );
+        router.push("/complete-profile");
+      }
       if (update.status === "progress") {
         setloadingMessage(update.update);
       } else if (update.status === "location") {
