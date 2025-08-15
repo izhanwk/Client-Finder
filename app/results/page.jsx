@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import axios from "axios";
 import {
   Building2,
   Search,
@@ -37,6 +38,18 @@ function Page() {
       top: 0,
       behavior: "smooth",
     });
+  };
+
+  const findContacts = async (company) => {
+    const es = new EventSource(`/api/find-contacts?company=${company}`);
+    es.onmessage = (message) => {
+      const toJson = JSON.parse(message.data);
+      console.log(toJson.data);
+    };
+    es.onerror = (error) => {
+      console.error("SSE error:", error);
+      es.close();
+    };
   };
 
   return (
@@ -110,7 +123,14 @@ function Page() {
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-gray-600 to-gray-500 rounded-2xl opacity-0 group-hover:opacity-20 transition duration-500 blur-sm"></div>
 
                   {/* Main card */}
-                  <div className="relative bg-gray-800/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 h-full hover:bg-gray-700/80 transition-all duration-500 hover:scale-105 hover:border-gray-600/50 cursor-pointer">
+                  <div
+                    className="relative bg-gray-800/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 h-full hover:bg-gray-700/80 transition-all duration-500 hover:scale-105 hover:border-gray-600/50 cursor-pointer"
+                    onClick={(e) => {
+                      const name = e.currentTarget.innerText;
+                      const newName = name.slice(1).trim();
+                      findContacts(newName);
+                    }}
+                  >
                     {/* Company initial/icon */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center shadow-lg">

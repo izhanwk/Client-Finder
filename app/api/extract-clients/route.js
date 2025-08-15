@@ -13,7 +13,7 @@ export async function GET(req) {
   const state = searchParams.get("state");
   const country = searchParams.get("country");
   const profession = searchParams.get("profession");
-  console.log("Data from POSTMAN", city, state, country, profession);
+  // console.log("Data from POSTMAN", city, state, country, profession);
 
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();

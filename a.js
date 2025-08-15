@@ -1,4 +1,2 @@
-const fun = (num) => {
-  console.log(num.stat);
-};
-fun({ num: 3, stat: "digit" });
+const random = Math.floor(Math.random() * 5) + 1;
+console.log(random);
